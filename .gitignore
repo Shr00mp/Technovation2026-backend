@@ -1,0 +1,22 @@
+# --- Python / Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+bin/
+lib/
+include/
+pip-selfcheck.json
+
+# --- Compiled files (Bytecode) ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- VS Code specific ---
+.vscode/
+*.code-workspace
+
+# --- OS generated files ---
+.DS_Store
+Thumbs.db
