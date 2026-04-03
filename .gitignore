@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .vscode/settings.json
 rf_model.py
+uploaded_mp3s
+converted_wavs
