@@ -112,10 +112,16 @@ def get_analysis(input_data, model, scaler, selected_features):
         impact_list.append((name, float(val)))
     top_reasons = sorted(impact_list, key=lambda x: x[1], reverse=True)[:5] # x[1] so sort based on score
 
+    meanings = set([])
+    for i, (name, score) in enumerate(top_reasons):
+        meaning = get_feature_meaning(name)
+        meanings.add(meaning)
+    meanings = list(meanings)
+
     # top_reasons and primary indictors different dtype so use dict
     return {
         "severity_score": severity, 
-        "top_indicators": top_reasons
+        "top_indicators": meanings,
     }
 
 final_model, model_scaler, selected_features, accuracy = train_model()
@@ -130,6 +136,5 @@ analysis = get_analysis(sample_dict, final_model, model_scaler, selected_feature
 
 print(f"Severity: {analysis['severity_score']*100:.1f}%")
 print("\nMain indicator features:")
-for i, (name, score) in enumerate(analysis["top_indicators"]):
-    meaning = get_feature_meaning(name)
-    print(f"{i+1}. {name}: Indicates your {meaning} is a primary factor.")
+for meaning in analysis["top_indicators"]:
+    print(f"Your {meaning} is a primary factor.")
