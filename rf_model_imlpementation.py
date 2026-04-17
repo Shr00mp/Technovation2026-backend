@@ -6,27 +6,28 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, accuracy_score
 import shap 
 
-# These are what different features mean 
+# These are what different features mean
+# Used to explain results to user + clinician
 FEATURE_MEANINGS = {
-    "jitter": "stability of your vocal pitch (shakiness)",
-    "shimmer": "consistency of your vocal volume",
-    "hnr": "clarity of your voice versus breathiness",
+    "jitter": "stability / shakiness of your pitch",
+    "shimmer": "consistency of your volume",
+    "hnr": "how breathy your voice is",
     "mfcc": "the unique texture and resonance of your voice",
     "intensity": "the strength and projection of your voice",
     "f1": "precision of your tongue and jaw movements",
     "f2": "precision of your tongue and jaw movements",
-    "pitch": "the fundamental frequency and range of your voice"
+    "pitch": "your vocal pitch"
 }
 
 def get_feature_meaning(feature_name):
-    # Input the technical column name and get out the feature meaing 
+    # Map technical oclumn names to actual meanings
     for key in FEATURE_MEANINGS:
         if key in feature_name.lower():
             return FEATURE_MEANINGS[key]
         
 def train_model():
     # Preprocessing of the data
-    df = pd.read_csv("audio_features.csv")
+    df = pd.read_csv("audio_features_new.csv")
     X = df.drop(columns=['Sample ID', 'Label'])
     y = df['Label'] 
 
@@ -34,8 +35,7 @@ def train_model():
     scaler = StandardScaler()
     X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
 
-    # 2. Split into Train/Test (80% train, 20% test)
-    # We split here so we can test the final model on unseen data
+    # Chose to do 80-20 train-test split
     X_train, X_test, y_train, y_test = train_test_split(
         X_scaled, y, test_size=0.2, random_state=42, stratify=y
     )
@@ -70,9 +70,6 @@ def train_model():
     remaining_top = [f for f in feature_importance_df['Feature'] if f not in selected_features]
     selected_features.extend(remaining_top[:(15 - len(selected_features))])
 
-    # print(f"Selected {len(selected_features)} features for the final model:")
-    # print(selected_features)
-
     # Training of the final model and splitting into training and testing data to get accuracy 
     X_train_final = X_train[selected_features]
     X_test_final = X_test[selected_features] # We also filter the test set
@@ -83,6 +80,8 @@ def train_model():
     accuracy = accuracy_score(y_test, y_pred)
 
     return final_model, scaler, selected_features, accuracy
+
+
 
 
 def get_analysis(input_data, model, scaler, selected_features):
@@ -117,6 +116,8 @@ def get_analysis(input_data, model, scaler, selected_features):
         meaning = get_feature_meaning(name)
         meanings.add(meaning)
     meanings = list(meanings)
+
+    severity = 0.08
 
     # top_reasons and primary indictors different dtype so use dict
     return {

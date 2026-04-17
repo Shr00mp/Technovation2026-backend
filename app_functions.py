@@ -4,16 +4,37 @@ import os
 from conversion import convert
 from extract_features import get_all_features
 from rf_model_imlpementation import get_analysis, train_model
+import os
 
 app = FastAPI()
+
+MODEL_STATE = {
+    "model": None,
+    "scaler": None,
+    "features": None
+}
+
+# Originally, the model was trained every time a call was made to backend
+# Model training takes a couple of seconds so it was erroring out
+# On startup the model is trained once and stored in the MODEl_STATE
+@app.on_event("startup")
+async def startup_event():
+    print("Currently training model") # Debugging 
+    model, scaler, features, acc = train_model()
+    MODEL_STATE["model"] = model
+    MODEL_STATE["scaler"] = scaler
+    MODEL_STATE["features"] = features
+    print(f"Model trained with {acc*100:.1f}% accuracy.")
+
+
 
 @app.post("/upload-audio/")
 async def save_audio(file: UploadFile = File(...)):
     in_file_path = os.path.join("uploaded_mp3s", file.filename)
     out_file_path = os.path.join("converted_wavs", file.filename)
-    # Open a local file and write the uploaded content into it
-    with open(in_file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+
+    with open(in_file_path, "wb") as local_file:
+        shutil.copyfileobj(file.file, local_file)
     
     convert(
         input_file_path=in_file_path,
@@ -27,15 +48,25 @@ async def save_audio(file: UploadFile = File(...)):
         unit="Hertz"
     ) 
 
-    final_model, model_scaler, selected_features, accuracy = train_model()
+    analysis = get_analysis(
+        feature_dict, 
+        MODEL_STATE["model"], 
+        MODEL_STATE["scaler"], 
+        MODEL_STATE["features"]
+    )
+    analysis["model_accuracy"] = MODEL_STATE.get("accuracy", 0)
 
-    analysis = get_analysis(feature_dict, final_model, model_scaler, selected_features)
-    analysis["accuracy"] = accuracy
+    print(analysis)
+
+    # At this point we have the analysis stored, so we don't need user's audio files anymore
+    # Deleting off of backend ensures uer privacy 
+    os.remove(in_file_path)
+    os.remove(out_file_path)
     
     return analysis
 
 
-
+# Created this one so we could test whether or not the HTTP connection was actually working 
 @app.get("/hello/")
 def read_root():
     return {"Hello": "World"}

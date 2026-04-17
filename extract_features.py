@@ -15,7 +15,6 @@ def get_formants(sound, point_process):
     f3_list = []
     f4_list = []
     
-    # Measure formants only at glottal pulses
     for point in range(0, num_points):
         point += 1
         t = call(point_process, "Get time from index", point)
